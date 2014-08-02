@@ -16,12 +16,13 @@
 #' cluster sum of squares.
 #'
 #' @keywords spectral clustering
-casc <- function(adjMat, covMat, nBlocks, method = "regLaplacian",
-                 rowNorm = TRUE, nIter = 10) {
+casc <- function(adjMat, covMat, nBlocks, nIter = 10,
+                 method = "regLaplacian", rowNorm = TRUE) {
     
     adjMat <- getGraphMatrix(adjMat, method)
     covMat <- scale(covMat)
-    
+
+    return( getCascClusters(adjMat, covMat, nBlocks, nIter, rowNorm) )    
 }
 
 # ---------------------------------------------------------------------
@@ -56,7 +57,7 @@ getGraphMatrix = function(adjacencyMat, method) {
 # returns CASC optimal h tuning parameter SVD
 # ---------------------------------------------------------------------
 getCascClusters = function(graphMat, covariates, nBlocks,
-    nIter) {
+    nIter, rowNorm) {
 
     rangehTuning = getTuningRange(graphMat, covariates, nBlocks)
 
@@ -69,7 +70,7 @@ getCascClusters = function(graphMat, covariates, nBlocks,
     
     for(i in 1:nIter) {
         cascResults = getCascResults(graphMat, covariates, hTuningSeq[i],
-            nBlocks)
+            nBlocks, rowNorm)
         clusterMat[i, ] = cascResults$cluster
         wcssVec[i] = cascResults$wcss
         gapVec[i] = cascResults$eGap
@@ -100,12 +101,17 @@ getCascClusters = function(graphMat, covariates, nBlocks,
 # returns cluster memberships for CASC based clustering takes graphMat
 # ---------------------------------------------------------------------
 getCascResults = function(graphMat, covariates, hTuningParam,
-    nBlocks) {
+    nBlocks, rowNorm) {
 
     randStarts = 10 #number of random starts for kmeans
     
     cascSvd = getCascSvd(graphMat, covariates, hTuningParam, nBlocks)
-    cascSingVec = cascSvd$singVec
+
+    if(rowNorm == TRUE) {
+        cascSingVec = cascSvd$singVec/sqrt(rowSums(cascSvd$singVec^2))
+    } else {
+        cascSingVec = cascSvd$singVec
+    }    
     
     kmeansResults = kmeans(cascSingVec, nBlocks, nstart = randStarts)
     
@@ -121,7 +127,7 @@ getCascResults = function(graphMat, covariates, hTuningParam,
 # ---------------------------------------------------------------------
 getCascSvd = function(graphMat, covariates, hTuningParam, nBlocks) {
 
-    #insure irlba internal representation is large enough
+    #ensure irlba internal representation is large enough
     internalDim = max(2*nBlocks, 20)
 
     #define a custom matrix vector multiply function
@@ -147,12 +153,7 @@ getCascSvd = function(graphMat, covariates, hTuningParam, nBlocks) {
 getTuningRange = function(graphMatrix, covariates, nBlocks) {
     
     #ensure irlba internal representation is large enough
-    if(nBlocks > 10) {
-        internalDim = 2 * nBlocks
-    }
-    else {
-        internalDim = 20
-    }
+    internalDim = max(2*nBlocks, 20)
     
     singValGraph = irlba(graphMatrix, nu = nBlocks + 1, nv = 0, m_b =
         internalDim)$d
