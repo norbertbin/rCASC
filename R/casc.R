@@ -20,7 +20,8 @@ casc <- function(adjMat, covMat, nBlocks, nIter = 10,
                  method = "regLaplacian", rowNorm = TRUE) {
     
     adjMat <- getGraphMatrix(adjMat, method)
-    covMat <- scale(covMat)
+    covMat <- scale(covMat, scale = F)
+    covMat <- covMat/sqrt(sum(covMat^2))
 
     return( getCascClusters(adjMat, covMat, nBlocks, nIter, rowNorm) )    
 }
