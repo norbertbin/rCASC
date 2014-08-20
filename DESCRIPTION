@@ -1,9 +1,9 @@
 Package: rCASC
-Title: What the package does (short line)
+Title: Covariate assisted spectral clustering package
 Version: 0.1
-Authors@R: "First Last <first.last@example.com> [aut, cre]"
-Description: What the package does (paragraph)
+Authors@R: "Norbert Binkiewicz <norbert@stat.wisc.edu> [aut, cre]"
+Description: Provides a function for graph community discovery using graph strucuture and node attributes via covariate assisted spectral clustering.
 Depends:
     R (>= 3.0.2)
-License: What license is it under?
+License: GNU General Public License v3
 LazyData: true
