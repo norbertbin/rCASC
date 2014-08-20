@@ -1,0 +1,4 @@
+<!--
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{An introduction to using rCASC}
+-->
