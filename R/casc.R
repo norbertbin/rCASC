@@ -4,11 +4,15 @@
 #' @param adjMat An adjacency matrix
 #' @param covMat A covariate matrix
 #' @param nBlocks The number of clusters
+#' @param nIter Number of iterations to find  the optimal tuning
+#' parameter.
 #' @param method The form of the adjacency matrix to be used.
 #' @param rowNorm True if row normalization should be
 #' done before running kmeans.
-#' @param nIter Number of iterations to find  the optimal tuning
-#' parameter.
+#' @param enhancedTuning If true, then the enhanced tuning procedure is used.
+#' @param center A boolean indicating if the covariate matrix columns
+#' should be centered.
+#' 
 #'
 #' @export
 #' @return A list with node cluster assignments, the
@@ -16,16 +20,19 @@
 #' cluster sum of squares, and the eigengap.
 #'
 #' @keywords spectral clustering
-casc <- function(adjMat, covMat, nBlocks, nIter = 10,
-                 method = "regLaplacian", rowNorm = TRUE) {
+casc <- function(adjMat, covMat, nBlocks, nIter = 30,
+                 method = "regLaplacian", rowNorm = F,
+                 enhancedTuning = F, center = F) {
 
     # Matrix has Namespace problems when using dsCMatrix
     adjMat = as(adjMat, "dgCMatrix")
     
     adjMat <- getGraphMatrix(adjMat, method)
-    covMat <- scale(covMat, scale = sqrt(Matrix::colSums(covMat^2)))
+    covMat <- scale(covMat, center = center,
+                    scale = sqrt(Matrix::colSums(covMat^2)))
 
-    return( getCascClusters(adjMat, covMat, nBlocks, nIter, rowNorm) )    
+    return( getCascClusters(adjMat, covMat, nBlocks, nIter,
+                            rowNorm, enhancedTuning) )    
 }
 
 # ---------------------------------------------------------------------
@@ -60,7 +67,7 @@ getGraphMatrix = function(adjacencyMat, method) {
 # returns CASC optimal h tuning parameter SVD
 # ---------------------------------------------------------------------
 getCascClusters = function(graphMat, covariates, nBlocks,
-    nPoints = 100, rowNorm) {
+    nPoints, rowNorm, enhancedTuning) {
 
     # value for detecting a transition
     epsilon = .05
@@ -80,23 +87,46 @@ getCascClusters = function(graphMat, covariates, nBlocks,
         orthoX[i] = cascResults$orthoX
         orthoL[i] = cascResults$orthoL
         wcssVec[i] = cascResults$wcss
+        gapVec[i] = cascResults$singGap
+    }
+
+# get transition points of static eigenvectors
+    subspaces = getSubspaces(orthoX, orthoL, nPoints, epsilon)
+    nSubspaces = length(subspaces$subintervalStart)    
+
+    if((enhancedTuning == T) & (nSubspaces > 1)) {
+
+        subMinIndex = vector(length = nSubspaces)
+        subMaxIndex = vector(length = nSubspaces)
+        for(i in 1:nSubspaces) {
+             subMinIndex[i] = which.min(wcssVec[
+                            subspaces$subintervalStart[i]:
+                                subspaces$subintervalEnd[i]]) +
+                                    subspaces$subintervalStart[i] - 1
+            subMaxIndex[i] = which.max(wcssVec[
+                           subspaces$subintervalStart[i]:
+                               subspaces$subintervalEnd[i]]) +
+                                   subspaces$subintervalStart[i] - 1
+        }
+
+        # keep only those intervals that are not dominated in terms of wcss
+         includeVec = (rowSums(outer(wcssVec[subMinIndex], wcssVec[subMaxIndex],
+                       function(x, y) {x > y})) == 0)
+        
+        minCountSubspaces = ((1:nSubspaces)[includeVec == 1])[
+                             which.min(subspaces$orthoCounts[includeVec == 1])]
+
+        # min WCSS on most overlapping set of subspaces
+        startIndex = subspaces$subintervalStart[minCountSubspaces]
+        endIndex = subspaces$subintervalEnd[minCountSubspaces]
+        minInterval = unlist(apply(cbind(startIndex, endIndex), 1, function(x)
+            {x[1]:x[2]}))
+        minWcssSubindex = which.min(wcssVec[minInterval])
+        hOpt = (hTuningSeq[minInterval])[minWcssSubindex]
+    } else {
+        hOpt = hTuningSeq[which.min(wcssVec)]
     }
     
-    # restrict the range of h values using orthogonal components
-    subspaces = getSubspaces(orthoX, orthoL, nPoints, epsilon)
-    
-    subintervalLengths = subspaces$subintervalEnd - subspaces$subintervalStart
-    minCountSubspaces = which(subspaces$orthoCounts ==
-        min(subspaces$orthoCounts))
-
-    # min WCSS on most overlapping set of subspaces
-    startIndex = subspaces$subintervalStart[minCountSubspaces]
-    endIndex = subspaces$subintervalEnd[minCountSubspaces]
-    minInterval = unlist(apply(cbind(startIndex, endIndex), 1, function(x)
-        {x[1]:x[2]}))
-    minWcssSubindex = which.min(wcssVec[minInterval])
-    hOpt = (hTuningSeq[minInterval])[minWcssSubindex]
-
     hOptResults = getCascResults(graphMat, covariates, hOpt, nBlocks, rowNorm)
     
     return( list(cluster = hOptResults$cluster,
@@ -104,7 +134,6 @@ getCascClusters = function(graphMat, covariates, nBlocks,
                  wcss = hOptResults$wcss,
                  eigenGap = hOptResults$eigenGap) )
 }
-
 
 # ---------------------------------------------------------------------
 # returns cluster memberships for CASC based clustering takes graphMat
@@ -115,22 +144,24 @@ getCascResults = function(graphMat, covariates, hTuningParam,
     randStarts = 10 #number of random starts for kmeans
     
     cascSvd = getCascSvd(graphMat, covariates, hTuningParam, nBlocks)
-    
+
     ortho = getOrtho(graphMat, covariates, cascSvd$singVec, cascSvd$singVal,
         hTuningParam, nBlocks)
 
     if(rowNorm == T) {
-        cascSvd$singVec = cascSvd$singVec / sqrt(rowSums(cascSvd$singVec^2))
-    }        
+        cascSvd$singVec = cascSvd$singVec/sqrt(colSums(cascSvd$singVec^2))
+    }
     
     kmeansResults = kmeans(cascSvd$singVec, nBlocks, nstart = randStarts)
     
     return( list(cluster = kmeansResults$cluster,
                  wcss = kmeansResults$tot.withinss,
-                 eigenGap = cascSvd$singVal[nBlocks]^2 -
-                 cascSvd$singVal[nBlocks + 1]^2,
+                 singGap = cascSvd$singVal[nBlocks] -
+                 cascSvd$singVal[nBlocks + 1],
                  orthoL = ortho$orthoL,
-                 orthoX = ortho$orthoX) )    
+                 orthoX = ortho$orthoX,
+                 singVecK = cascSvd$singVec[, nBlocks],
+                 singVecKPlus = cascSvd$singVecKPlus) )    
 }
 
 # ---------------------------------------------------------------------
@@ -163,19 +194,21 @@ getCascSvd = function(graphMat, covariates, hTuningParam, nBlocks) {
 # ---------------------------------------------------------------------
 getTuningRange = function(graphMatrix, covariates, nBlocks) {
     
-    #insure irlba internal representation is large enough
+    #ensure irlba internal representation is large enough
     if(nBlocks > 10) {
         internalDim = 2 * nBlocks
     }
     else {
         internalDim = 20
     }
+
+    nCov = dim(covariates)[2]
     
     singValGraph = irlba(graphMatrix, nu = nBlocks + 1, nv = 0, m_b =
         internalDim)$d
-    singValCov = svd(covariates, nu = nBlocks)$d
+    singValCov = svd(covariates, nu = min(nBlocks, nCov))$d
 
-    hmax = singValGraph[1]/singValCov[nBlocks]^2
+    hmax = singValGraph[1]/singValCov[min(nBlocks, nCov)]^2
 
     hmin = (singValGraph[nBlocks] - singValGraph[nBlocks + 1])/singValCov[1]^2
 
