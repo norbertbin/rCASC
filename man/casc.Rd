@@ -3,8 +3,8 @@
 \alias{casc}
 \title{Covariate Assisted Spectral Clustering}
 \usage{
-casc(adjMat, covMat, nBlocks, nIter = 10, method = "regLaplacian",
-  rowNorm = TRUE)
+casc(adjMat, covMat, nBlocks, nIter = 100, method = "regLaplacian",
+  rowNorm = F, enhancedTuning = F, center = F)
 }
 \arguments{
 \item{adjMat}{An adjacency matrix}
@@ -13,13 +13,18 @@ casc(adjMat, covMat, nBlocks, nIter = 10, method = "regLaplacian",
 
 \item{nBlocks}{The number of clusters}
 
-\item{nIter}{Number of iterations to find  the optimal tuning
+\item{nIter}{Number of iterations to find the optimal tuning
 parameter.}
 
 \item{method}{The form of the adjacency matrix to be used.}
 
 \item{rowNorm}{True if row normalization should be
 done before running kmeans.}
+
+\item{enhancedTuning}{If true, then the enhanced tuning procedure is used.}
+
+\item{center}{A boolean indicating if the covariate matrix columns
+should be centered.}
 }
 \value{
 A list with node cluster assignments, the

@@ -9,7 +9,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-This is a simple vignette demonstrating the usage of *casc* function in the **rCASC** package on some simulated data. To simulate the data and evaluate the results the [**SpecClustPack**](https://github.com/norbertbin/SpecClustPack) package is used. For the puposes of this vignette, the simulated graph will have a low block signal and the node covariates will have a high block signal. The graph and the covariates will be clustered jointly using *casc* with the standard and the enhanced tuning procedure.
+This is a simple vignette demonstrating the usage of the *casc* function in the **rCASC** package on some simulated data. To simulate the data and evaluate the results the [**SpecClustPack**](https://github.com/norbertbin/SpecClustPack) package is used. For the puposes of this vignette, the simulated graph will have a low block signal and the node covariates will have a high block signal. The graph and the covariates will be clustered jointly using *casc* with the standard and the enhanced tuning procedure.
 
 ```{r, message=FALSE}
 library(SpecClustPack)
@@ -21,7 +21,7 @@ library(rCASC)
 covProbMat = matrix(c(.5, .1, .1, .5), nrow = 2)
 nMembers = c(500, 500)
 covMat = simBernCovar(covProbMat, nMembers)
-blockPMat = matrix(c(.03, .028, .028, .03), nrow = 2)
+blockPMat = matrix(c(.03, .027, .027, .03), nrow = 2)
 adjMat = simSBM(blockPMat, nMembers)
 ```
 
@@ -40,7 +40,7 @@ estSBM(adjMat, clusters)
 ```
 
 ## Case b: Apply CASC with enhanced tuning procedure
-The usage of *casc* is the same as for case (b) with the addition of setting the *enhancedTuning* parameter to true.
+The usage of *casc* is the same as for case (b) with the addition of setting the *enhancedTuning* parameter to TRUE.
 ```{r}
 clusters = casc(adjMat, covMat, nBlocks = 2, nIter = 100, enhancedTuning = T)$cluster
 ```
