@@ -4,7 +4,7 @@
 #' @param adjMat An adjacency matrix
 #' @param covMat A covariate matrix
 #' @param nBlocks The number of clusters
-#' @param nIter Number of iterations to find  the optimal tuning
+#' @param nIter Number of iterations to find the optimal tuning
 #' parameter.
 #' @param method The form of the adjacency matrix to be used.
 #' @param rowNorm True if row normalization should be
@@ -20,7 +20,7 @@
 #' cluster sum of squares, and the eigengap.
 #'
 #' @keywords spectral clustering
-casc <- function(adjMat, covMat, nBlocks, nIter = 30,
+casc <- function(adjMat, covMat, nBlocks, nIter = 100,
                  method = "regLaplacian", rowNorm = F,
                  enhancedTuning = F, center = F) {
 
