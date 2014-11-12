@@ -1,0 +1,53 @@
+---
+title: "rCASC Vignette"
+author: "Norbert Binkiewicz"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{rCASC Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+This is a simple vignette demonstrating the usage of *casc* function in the **rCASC** package on some simulated data. To simulate the data and evaluate the results the [**SpecClustPack**](https://github.com/norbertbin/SpecClustPack) package is used. For the puposes of this vignette, the simulated graph will have a low block signal and the node covariates will have a high block signal. The graph and the covariates will be clustered jointly using *casc* with the standard and the enhanced tuning procedure.
+
+```{r, message=FALSE}
+library(SpecClustPack)
+library(rCASC)
+```
+
+## Simulate data with high signal in covariates and low signal in graph
+```{r}
+covProbMat = matrix(c(.5, .1, .1, .5), nrow = 2)
+nMembers = c(500, 500)
+covMat = simBernCovar(covProbMat, nMembers)
+blockPMat = matrix(c(.03, .028, .028, .03), nrow = 2)
+adjMat = simSBM(blockPMat, nMembers)
+```
+
+## Case a: Apply CASC with standard tuning procedure
+Here *casc* takes the adjacency matrix, *adjMat*, the covariate matrix, *covMat*, the number of blocks/clusters to be recovered, *nBlocks*, and the number of iterations in the grid search for the optimal h value, *nIter*. The *casc* function returns a list which includes the cluster vector, the chosen value of h, the within cluster sum of squares of the returned clusters, and the eigengap of the similarity matrix. Here only the cluster assignment vector is of interest, but the other quantaties might be of interest in a more detailed analysis.
+
+```{r}
+clusters = casc(adjMat, covMat, nBlocks = 2, nIter = 100)$cluster
+```
+
+## Check Results
+Compute the misclustering rate and estimate the graph block probability matrix to check the clustering results. The parameters used in the simulations are set so that the results using the standard tuning procedure are poor.
+```{r}
+misClustRate(clusters, nMembers)
+estSBM(adjMat, clusters)
+```
+
+## Case b: Apply CASC with enhanced tuning procedure
+The usage of *casc* is the same as for case (b) with the addition of setting the *enhancedTuning* parameter to true.
+```{r}
+clusters = casc(adjMat, covMat, nBlocks = 2, nIter = 100, enhancedTuning = T)$cluster
+```
+
+## Check Results
+The results using the enhanced tuning procedure will often give better results than the standard procedure for these simulation settings.
+```{r}
+misClustRate(clusters, nMembers)
+estSBM(adjMat, clusters)
+```
