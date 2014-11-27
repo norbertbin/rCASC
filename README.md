@@ -1,7 +1,7 @@
 rCASC
 =====
 
-A simple R package for doing covariate assisted spectral clustering using a modified version of the **irlba** package for partial SVD computation. 
+A simple R package for doing [covariate assisted spectral clustering](http://arxiv.org/abs/1411.2158) using a modified version of the **irlba** package for partial SVD computation. 
 
 Installation
 ===
