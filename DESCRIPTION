@@ -6,6 +6,8 @@ Description: Provides a function for graph community discovery using graph
     strucuture and node attributes via covariate assisted spectral clustering.
 Depends:
     R (>= 3.0.2),
+    rARPACK,
+    Matrix,
     irlba
 License: GNU General Public License v3
 LazyData: true
