@@ -282,7 +282,7 @@ getCascSvd = function(graphMat, covariates, hTuningParam, nBlocks, assortative) 
     }
 
     sDecomp = irlba(A = graphMat, nu = nBlocks + 1, nv = 0,
-        m_b = max(20, 2*nBlocks), matmul = matMult)
+        work = max(20, 2*nBlocks), matmul = matMult)
 
     # return
     list(eVec = sDecomp$u[, 1:nBlocks],
@@ -306,7 +306,7 @@ getTuningRange = function(graphMatrix, covariates, nBlocks,
         #     opts = list(retvec = F))$values #eigenvalues only
 
         eigenValGraph = irlba(graphMatrix, nu = nBlocks + 1, nv = 0, 
-            m_b = max(20, 2*nBlocks))$d
+            work = max(20, 2*nBlocks))$d
 
         if(nCov > nBlocks) {
             hmax = eigenValGraph[1]/(singValCov[nBlocks]^2 - singValCov[nBlocks+1]^2) 
@@ -320,7 +320,7 @@ getTuningRange = function(graphMatrix, covariates, nBlocks,
         # eigenValGraph = sort(eigenValGraph^2, decreasing=T)
 
         eigenValGraph = (irlba(graphMatrix, nu = nBlocks + 1, nv = 0, 
-            m_b = max(20, 2*nBlocks))$d)^2
+            work = max(20, 2*nBlocks))$d)^2
 
         if(nCov > nBlocks) {
             hmax = eigenValGraph[1]/(singValCov[nBlocks]^2 - singValCov[nBlocks+1]^2) 
